@@ -7,16 +7,26 @@
 
 using namespace std;
 
-void init(double **matrix, double *vector, int st_with, int last_str, int n)
+void init(double **matrix, double *vector, int n)
 {
-    for (int i = st_with; i < last_str; i++)
+#pragma omp parallel
     {
-        for (int j = 0; j < n; j++)
-            matrix[i][j] = i + j;
-    }
+        int cnt_thrd = omp_get_num_threads();
+        int thrd_id = omp_get_thread_num();
 
-    for (int j = st_with; j < last_str; j++)
-        vector[j] = j;
+        int cnt_matrix_str_for_thrd = n / cnt_thrd;
+        int st_with = thrd_id * cnt_matrix_str_for_thrd;
+        int last_str = st_with + cnt_matrix_str_for_thrd;
+
+        for (int i = st_with; i < last_str; i++)
+        {
+            for (int j = 0; j < n; j++)
+                matrix[i][j] = i + j;
+        }
+
+        for (int j = st_with; j < last_str; j++)
+            vector[j] = j;
+    }
 }
 
 void matrix_product(double **matrix, double *vector, double *res_vector, int n)
@@ -32,8 +42,6 @@ void matrix_product(double **matrix, double *vector, double *res_vector, int n)
 
         if (thrd_id == cnt_thrd)
             last_str = n;
-
-        init(matrix, vector, st_with, last_str, n);
 
         for (int i = st_with; i < last_str; ++i)
         {
@@ -74,6 +82,9 @@ int main()
 
         vector = new double[n];
         res_vector = new double[n];
+
+        omp_set_num_threads(20);
+        init(matrix, vector, n);
 
         for (int i = 0; i < 8; ++i)
         {
