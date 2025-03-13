@@ -2,6 +2,10 @@
 #include <vector>
 #include <cmath>
 #include <omp.h>
+#include <ctime>
+#include <fstream>
+
+#define COUNT_THRD 1
 
 using namespace std;
 
@@ -45,13 +49,28 @@ bool count_err(const vector<double> &x, double eps)
     return max_error >= eps;
 }
 
+template <typename T>
+void write_to_csv(ofstream &file, T *arr)
+{
+    for (int i = 0; i < 7; i++)
+    {
+        file << arr[i] << ",";
+    }
+    file << arr[7] << endl;
+}
+
 int main()
 {
-    int num_thrd = 4;
-    omp_set_num_threads(num_thrd);
+    ofstream file("res.csv");
+
+    // int count_thrd_arr[8] = {1, 2, 4, 7, 8, 16, 20, 40};
+    int count_thrd_arr[COUNT_THRD] = {1};
+    double delta_t_arr[COUNT_THRD] = {0};
+
+    write_to_csv(file, count_thrd_arr);
 
     vector<vector<double>> A;
-    int N = 20'000;
+    int N = 30'000;
 
     A.resize(N, vector<double>(N, 1.0));
 #pragma omp parallel for
@@ -60,47 +79,61 @@ int main()
         A[i][i] = 2.0;
     }
 
-    vector<double> b(N, N + 1.0);
-    vector<double> x(N, 0.0);
-
-    vector<double> r = b;
-    vector<double> z = r;
-
     double eps = 1e-6;
+    double t = 0.0;
     int max_iter = 1;
     int iter = 0;
 
-    while (count_err(x, eps))
+    cout << "!" << endl;
+
+    for (int i = 0; i < COUNT_THRD; ++i)
     {
-        vector<double> Az = matrix_mult(A, z);
+        vector<double> b(N, N + 1.0);
+        vector<double> x(N, 0.0);
+        vector<double> r = b;
+        vector<double> z = r;
 
-        double alpha = dot_product(r, r) / dot_product(z, Az);
+        omp_set_num_threads(count_thrd_arr[i]);
+
+        t = omp_get_wtime();
+
+        while (count_err(x, eps))
+        {
+            vector<double> Az = matrix_mult(A, z);
+
+            double alpha = dot_product(r, r) / dot_product(z, Az);
 
 #pragma omp parallel for
-        for (int i = 0; i < N; ++i)
-        {
-            x[i] += alpha * z[i];
-        }
+            for (int i = 0; i < N; ++i)
+            {
+                x[i] += alpha * z[i];
+            }
 
-        vector<double> r_new = r;
+            vector<double> r_new = r;
 #pragma omp parallel for
-        for (int i = 0; i < N; ++i)
-        {
-            r_new[i] -= alpha * Az[i];
-        }
+            for (int i = 0; i < N; ++i)
+            {
+                r_new[i] -= alpha * Az[i];
+            }
 
-        double beta = dot_product(r_new, r_new) / dot_product(r, r);
+            double beta = dot_product(r_new, r_new) / dot_product(r, r);
 
 #pragma omp parallel for
-        for (int i = 0; i < N; ++i)
-        {
-            z[i] = r_new[i] + beta * z[i];
+            for (int i = 0; i < N; ++i)
+            {
+                z[i] = r_new[i] + beta * z[i];
+            }
+
+            r = r_new;
+            ++iter;
         }
 
-        r = r_new;
-        ++iter;
-    }
-    cout << "Count threads: " << num_thrd << endl;
-    cout << "Count iter: " << iter << endl;
+        delta_t_arr[i] = omp_get_wtime() - t;
+        cout << omp_get_num_threads() << endl
+             << delta_t_arr[i] << endl;
+        }
+
+    write_to_csv(file, delta_t_arr);
+    file.close();
     return 0;
 }
