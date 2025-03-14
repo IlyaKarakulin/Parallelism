@@ -5,7 +5,7 @@
 #include <ctime>
 #include <fstream>
 
-#define COUNT_THRD 1
+#define COUNT_THRD 7
 
 using namespace std;
 
@@ -52,25 +52,25 @@ bool count_err(const vector<double> &x, double eps)
 template <typename T>
 void write_to_csv(ofstream &file, T *arr)
 {
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < COUNT_THRD; i++)
     {
         file << arr[i] << ",";
     }
-    file << arr[7] << endl;
+    file << arr[COUNT_THRD - 1] << endl;
 }
 
 int main()
 {
     ofstream file("res.csv");
 
-    // int count_thrd_arr[8] = {1, 2, 4, 7, 8, 16, 20, 40};
-    int count_thrd_arr[COUNT_THRD] = {1};
+    int count_thrd_arr[8] = {1, 2, 4, 8, 16, 32, 40};
+    // int count_thrd_arr[COUNT_THRD] = {1};
     double delta_t_arr[COUNT_THRD] = {0};
 
     write_to_csv(file, count_thrd_arr);
 
     vector<vector<double>> A;
-    int N = 30'000;
+    int N = 100'000;
 
     A.resize(N, vector<double>(N, 1.0));
 #pragma omp parallel for
@@ -79,15 +79,15 @@ int main()
         A[i][i] = 2.0;
     }
 
-    double eps = 1e-6;
-    double t = 0.0;
-    int max_iter = 1;
-    int iter = 0;
-
     cout << "!" << endl;
 
     for (int i = 0; i < COUNT_THRD; ++i)
     {
+        double eps = 1e-6;
+        double t = 0.0;
+        int max_iter = 1;
+        int iter = 0;
+
         vector<double> b(N, N + 1.0);
         vector<double> x(N, 0.0);
         vector<double> r = b;
@@ -129,11 +129,12 @@ int main()
         }
 
         delta_t_arr[i] = omp_get_wtime() - t;
-        cout << omp_get_num_threads() << endl
-             << delta_t_arr[i] << endl;
-        }
+
+        cout << delta_t_arr[i] << endl;
+    }
 
     write_to_csv(file, delta_t_arr);
     file.close();
+
     return 0;
 }
