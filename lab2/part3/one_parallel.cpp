@@ -92,12 +92,12 @@ int main()
 
         double t = omp_get_wtime();
 
-        while (count_err(x, eps))
-        {
-            vector<double> Az(N);
-            alpha = 0.0, num = 0.0, denom = 0.0, beta = 0.0;
 #pragma omp parallel
+        {
+            while (count_err(x, eps))
             {
+                vector<double> Az(N);
+                alpha = 0.0, num = 0.0, denom = 0.0, beta = 0.0;
 
 #pragma omp parallel for
                 for (int i = 0; i < z.size(); ++i)

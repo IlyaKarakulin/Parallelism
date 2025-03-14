@@ -73,7 +73,7 @@ int main()
     int N = 100'000;
 
     A.resize(N, vector<double>(N, 1.0));
-#pragma omp parallel for
+    // #pragma omp parallel for
     for (int i = 0; i < N; ++i)
     {
         A[i][i] = 2.0;

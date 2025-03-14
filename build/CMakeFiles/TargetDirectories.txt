@@ -1,0 +1,3 @@
+/home/ilya/Documents/Parallelism/build/CMakeFiles/main.dir
+/home/ilya/Documents/Parallelism/build/CMakeFiles/edit_cache.dir
+/home/ilya/Documents/Parallelism/build/CMakeFiles/rebuild_cache.dir
